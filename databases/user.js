@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
+const Book = require("./book");
 
 const UserSchema = new Schema({
   email: {
@@ -13,6 +14,23 @@ const UserSchema = new Schema({
   full_name: String,
   address: String,
   phone_number: String,
+    show: {
+    type: Boolean,
+    default: true
+  },
+  status: {
+    type: String,
+    default: "Active"
+  },
+  cart: [
+    {
+      bookId: {
+        type: mongoose.Types.ObjectId,
+        ref: Book
+      },
+      amount: Number
+    }
+  ],
 });
 
 module.exports = mongoose.model("User", UserSchema);
