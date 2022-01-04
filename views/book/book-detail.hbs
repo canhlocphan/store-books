@@ -30,6 +30,30 @@
 
     return result;
   }
+  
+  function postComment(bookId) {
+    const name = $('#full-name').val();
+    const content = $('#content').val();
+    let isValidName = false;
+    let isValidContent = false;
+
+    if (name === undefined) {
+      isValidName = true;
+    } else {
+      isValidName = validateFullName(name);
+    }
+
+    isValidContent = validateContent(content);
+
+    if (isValidName && isValidContent) {
+      $.post('/api/book/post-comment', { bookId, name, content }, function (data) {
+        console.log(data);
+        if(data) {
+          alert("Post comment successfully")
+        }
+      })
+    }
+  }
 
 </script>
 

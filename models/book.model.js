@@ -171,4 +171,22 @@ module.exports = {
 
     return books;
   },
+  
+    addComment: async (bookId, comment) => {
+    let result = false;
+
+    try {
+      const book = await Book.findOne({ _id: bookId, show: true });
+      if (book) {
+        book.comments.push(comment);
+        await book.save();
+        result = true;
+      }
+    } catch (error) {
+      console.log('Error bookModel/addComment: ', error)
+    }
+
+    return result;
+  },
+
 };

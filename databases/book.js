@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Author = require("./author")
+const Comment = require("./comment");
 const Category = require("./category");
 const { Schema } = mongoose;
 var mongoosePaginate = require('mongoose-paginate-v2');
