@@ -1,4 +1,9 @@
+const nodemailer = require("nodemailer");
+
 const User = require("../databases/user");
+const userService = require("../service/user.service");
+const cartService = require("../service/cart.service");
+const { findOneAndUpdate } = require("../databases/user");
 
 //function
 async function checkEmailExists(email) {
@@ -45,16 +50,21 @@ module.exports = {
       return { status: false, message: "Email is already used" };
     }
 
-    // // //send mail
+    //hash password
+    const userRes = await userService.hashPasswordAndCreateNewAccount(newUser);
+
+    // //send mail
     // const PORT = process.env.PORT || 3000
     // // const host = `http://localhost:${PORT}`;
+    // const host = 'https://techiegang.herokuapp.com';
     // // // console.log(host);
- 
+    // const link = host + "/users/verify?id=" + userRes._id + "&email=" + userRes.email;
     // const message = {
-    //   from: process.env.MAIL_USERNAME || "pcloc101099@gmail.com",
+    //   from: process.env.MAIL_USERNAME || "technigang007@gmail.com",
     //   to: userRes.email,
     //   subject: "BookStore - Verify your account",
-    //   text: "Verify your BookStore account",
+    //   text: link,
+    //   html: "<p>To verify your BookStore account, <a href='" + link + "'>click me</a></p>",
     // };
     // console.log("Message: ", message);
 
@@ -63,8 +73,8 @@ module.exports = {
     //   host: 'smtp.gmail.com',
     //   port: 587,
     //   auth: {
-    //     user: process.env.MAIL_USERNAME || "pcloc101099@gmail.com",
-    //     pass: process.env.MAIL_PASSWORD || "01676715510Loc"
+    //     user: process.env.MAIL_USERNAME || "technigang007@gmail.com",
+    //     pass: process.env.MAIL_PASSWORD || "3besthandsomeguy"
     //   }
     // });
     // // send mail with defined transport object
@@ -115,5 +125,161 @@ module.exports = {
     }
     return result;
   },
+
+  changePassword: async (userId, newPassword) => {
+    let result = false;
+
+    const query = { _id: userId, status: "Active" };
+    const hashedPassword = await userService.hashPassword(newPassword);
+
+    if (hashedPassword) {
+      try {
+        await User.findOneAndUpdate(query, { password: hashedPassword });
+        result = true;
+      } catch (error) {
+        console.log("userModel/changePassword: change password failed -> ", error);
+      }
+    }
+    return result;
+  },
+
+  updateUserInfo: async (userId, info) => {
+    let result = { status: false, message: "" };
+
+    const query = { _id: userId, status: "Active" }
+    try {
+      await User.findOneAndUpdate(query, { ...info });
+      result.status = true;
+      result.message = "Updated successfully!"
+    } catch (error) {
+      result.message = "Cannot update user info"
+    }
+
+    return result;
+  },
+
+  addBookToCart: async (userId, goods) => {
+    let result = { status: false, message: "Failed" }
+
+    const query = { _id: userId, status: "Active" }
+    try {
+      const user = await User.findOne(query);
+      if (user) {
+        // check if book is already exists in cart
+        let isExists = false;
+        for (let g of user.cart) {
+          if (g.bookId.toString() === goods.bookId) {
+
+            isExists = true;
+            g.amount += goods.amount;
+            break;
+          }
+        }
+        // if book is not exists in cart
+        if (!isExists) {
+          user.cart.push(goods);
+        }
+        await user.save();
+
+        result.status = true;
+        result.message = "Successfully!"
+      }
+    } catch (error) {
+      result.message = "Server error"
+    }
+
+    return result;
+  },
+
+  updateCartAfterLogin: async (userId, cart) => {
+    const query = { _id: userId, status: "Active" };
+    return await User.findOneAndUpdate(query, { cart: cart }, { new: true });
+  },
+
+  getCartDetail: async (userId) => {
+    let result = { status: false, message: "Server error" };
+    try {
+      const user = await User.findOne({ _id: userId })
+        .populate({
+          path: 'cart',
+          populate: {
+            path: 'bookId',
+            model: 'Book'
+          }
+        })
+        .exec();
+
+      console.log("User: ", user)
+      let totalPrice = 0;
+      for (const goods of user.cart) {
+        totalPrice += goods.bookId.price * goods.amount;
+      }
+
+      result.status = true;
+      result.message = "OK"
+      result.data = { cart: user.cart, totalPrice };
+    } catch (e) {
+      console.log("userModel/getCartDetail: ", e.toString());
+    }
+    return result;
+  },
+
+  updateGoodsAmount: async (userId, goods) => {
+    const result = { status: false, message: "Update goods amount failed" }
+    const query = { _id: userId, status: "Active" };
+
+    try {
+      const user = await User.findOne(query)
+        .populate({
+          path: 'cart',
+          populate: {
+            path: 'bookId',
+            model: 'Book'
+          }
+        })
+        .exec();
+      if (user) {
+        for (const g of user.cart) {
+          if (g.bookId._id.toString() === goods.bookId) {
+            g.amount = goods.amount;
+            break;
+          }
+        }
+        await user.save();
+
+        const totalPrice = cartService.totalPrice(user.cart);
+        result.status = true;
+        result.message = "Update goods amount successfully"
+        result.data = { cart: user.cart, totalPrice: totalPrice };
+      }
+    } catch (e) {
+      console.log("userModel/updateGoodsAmount: ", e.toString());
+    }
+
+    return result;
+  },
+
+  deleteProductFromCart: async (userId, bookId) => {
+    const query = { _id: userId, status: "Active" };
+    try {
+      const user = await User.findOne(query);
+      if (user) {
+        for (let i = 0; i < user.cart.length; i++) {
+          if (user.cart[i].bookId.toString() === bookId) {
+            user.cart.splice(i, 1);
+            break;
+          }
+        }
+        await user.save();
+      }
+    } catch (e) {
+      console.log("userModel/deleteProductFromCart: ", e.toString());
+    }
+  },
+
+  clearCart: async (userId) => {
+    const query = { _id: userId, status: "Active" };
+    await User.findOneAndUpdate(query, { cart: [] });
+  }
 
 };

@@ -1,4 +1,4 @@
-const userService = require("../../service/user-service")
+const userService = require("../../service/user.service")
 const userModel = require("../../models/user.model");
 
 exports.checkEmailExist = async (req, res, next) => {
