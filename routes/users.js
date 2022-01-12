@@ -26,4 +26,6 @@ router.post("/register", authNotLogin, userController.addNewAccount);
 // logout
 router.get("/logout", userController.logout);
 
+router.get("/order", isAuthenticated, userController.renderOrderHistory)
+
 module.exports = router;
