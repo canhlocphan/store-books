@@ -11,4 +11,6 @@ router.post("/update-user-info", isAuthenticated, userApiController.updateUserIn
 
 router.post("/change-password", isAuthenticated, userApiController.changePassword)
 
+router.post("/send-email-reset-password", userApiController.sendEmailResetPassword)
+
 module.exports = router;

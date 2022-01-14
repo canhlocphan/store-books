@@ -23,6 +23,12 @@ router.post("/login", authNotLogin,
 router.get("/register", authNotLogin, userController.register);
 router.post("/register", authNotLogin, userController.addNewAccount);
 
+router.get("/forgot-password", userController.renderForgotPasswordScreen)
+// router.post("/forgot-password", userController.sendEmailResetPassword)
+
+router.get("/reset-password", userController.renderNewPasswordScreen)
+router.post("/reset-password", userController.resetPassword)
+
 // logout
 router.get("/logout", userController.logout);
 

@@ -77,31 +77,61 @@ module.exports = {
 		// req.session.cart = []
 		res.redirect("/");
 	},
+
+	renderOrderHistory: async (req, res, next) => {
+		const bills = await billModel.getBillByUser(req.user._id);
+
+		let result = [];
+		for (let bill of bills) {
+			let bookNames = [];
+			for (let book of bill.books) {
+				bookNames.push(book.bookId.name);
+			}
+
+			result.push({
+				_id: bill._id,
+				books: bookNames.join(', '),
+				booking_date: dateFormat(bill.booking_date, "dd/mm/yyyy"),
+				total_price: bill.total_price,
+				status: bill.status
+			});
+		}
+
+		console.log(result);
+
+
+		// res.render
+		res.render('bill/bill-history', { result })
+		// res.send(result);
+	},
+	renderForgotPasswordScreen: (req, res, next) => {
+		res.render('user/forgot-password')
+	},
 	
-	  renderOrderHistory: async (req, res, next) => {
-    const bills = await billModel.getBillByUser(req.user._id);
+	  renderNewPasswordScreen: async (req, res, next) => {
+    // const email = req.query.email;
+    const id = req.query.id;
 
-    let result = [];
-    for (let bill of bills) {
-      let bookNames = [];
-      for(let book of bill.books) {
-        bookNames.push(book.bookId.name);
-      }
+    const result = await userModel.getActivedUserInfo(id);
+    // console.log(result);
 
-      result.push({
-        _id: bill._id,
-        books: bookNames.join(', '),
-        booking_date: dateFormat(bill.booking_date, "dd/mm/yyyy"),
-        total_price: bill.total_price,
-        status: bill.status
-      });
+    if (result) {
+      res.render('user/reset-password', { id })
     }
+    else {
+      next()
+    }
+	},
+		
+		resetPassword: async (req, res, next) => {
+    const { userId, password } = req.body;
+    // const userInfo = await userModel.getActivedUserInfo(userId);
 
-    console.log(result);
-
-
-    // res.render
-    res.render('bill/bill-history', { result })
-    // res.send(result);
-  }
+    if (await userModel.getActivedUserInfo(userId)) {
+      if (await userModel.changePassword(userId, password)) {
+        res.render('user/login', { message: "Reset password successfully" });
+      }
+    }
+    res.render('user/reset-password', { message: "Change password failed" })
+  },
 };

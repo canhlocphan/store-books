@@ -1,6 +1,7 @@
 const User = require('../databases/user')
 const bcrypt = require('bcrypt')
-const nodemailer = require('nodemailer')
+const nodemailer = require('nodemailer');
+const userModel = require('../models/user.model');
 
 const saltRounds = 10;
 
@@ -15,6 +16,32 @@ exports.checkCredential = async (username, password) => {
     return user;
   }
   return false;
+}
+
+exports.sendEmailResetPassword = async (req,userInfo) => {
+  const message = {
+    from: process.env.MAIL_USERNAME,
+    to: userInfo.email,
+    subject: "BookStore - Reset password",
+    text: "Reset Password",
+  };
+  console.log("Message: ", message);
+
+  let transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.MAIL_USERNAME || "pcloc101099@gmail.com",
+      pass: process.env.MAIL_PASSWORD || "01676715510Loc"
+    }
+  });
+  // send mail with defined transport object
+  try {
+    let info = await transporter.sendMail(message);
+    return true;
+  } catch (error) {
+    console.log("Error send email: ", error)
+    return false;
+  }
 }
 
 exports.hashPassword = async (password) => {
