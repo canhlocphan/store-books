@@ -4,7 +4,7 @@
 	"description": "Cua hang sach",
 	"private": true,
 	"scripts": {
-		"start": "node ./app",
+		"start": "node ./bin/www",
 		"dev": "nodemon ./bin/www",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
